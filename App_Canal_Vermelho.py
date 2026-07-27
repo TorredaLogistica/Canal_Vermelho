@@ -307,15 +307,21 @@ st.markdown('<p class="subtitle">Acompanhamento mensal de pedidos, tempos operac
 with st.sidebar:
     st.markdown("### Base de dados")
     # Leitura automática: não existe seleção manual de arquivo.
+    app_dir = Path(__file__).resolve().parent
     candidates = [
-        Path("Base OTIF.xlsb"),
-        Path("data/Base OTIF.xlsb"),
-        Path(__file__).resolve().parent / "Base OTIF.xlsb",
-        Path(__file__).resolve().parent / "data" / "Base OTIF.xlsb",
+        # GitHub / Streamlit Cloud: prioriza o Parquet salvo no repositório.
+        app_dir / "Base OTIF.parquet",
+        app_dir / "data" / "Base OTIF.parquet",
+        # Execução local: mantém compatibilidade com XLSB.
+        app_dir / "Base OTIF.xlsb",
+        app_dir / "data" / "Base OTIF.xlsb",
     ]
-    base_path = next((candidate for candidate in candidates if candidate.exists()), None)
+    base_path = next((candidate for candidate in candidates if candidate.is_file()), None)
     if base_path is None:
-        st.error("Base OTIF.xlsb não encontrada. Coloque o arquivo na mesma pasta do App ou na pasta data.")
+        st.error(
+            "Base não encontrada. Inclua 'Base OTIF.parquet' na raiz do repositório "
+            "ou na pasta data/."
+        )
         st.stop()
     try:
         with st.spinner("Abrindo base otimizada..."):
@@ -858,4 +864,3 @@ else:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True,
     )
-
