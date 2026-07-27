@@ -305,16 +305,20 @@ st.markdown('<p class="title">🔴 Indicador Canal Vermelho</p>', unsafe_allow_h
 st.markdown('<p class="subtitle">Acompanhamento mensal de pedidos, tempos operacionais e evolução dos últimos seis meses</p>', unsafe_allow_html=True)
 
 with st.sidebar:
-    # Leitura automática: não existe seleção manual de arquivo.
+    # No GitHub/Streamlit Cloud, prioriza o Parquet salvo no repositório.
+    app_dir = Path(__file__).resolve().parent
     candidates = [
-        Path("Base OTIF.xlsb"),
-        Path("data/Base OTIF.xlsb"),
-        Path(__file__).resolve().parent / "Base OTIF.xlsb",
-        Path(__file__).resolve().parent / "data" / "Base OTIF.xlsb",
+        app_dir / "Base OTIF.parquet",
+        app_dir / "data" / "Base OTIF.parquet",
+        app_dir / "Base OTIF.xlsb",
+        app_dir / "data" / "Base OTIF.xlsb",
     ]
-    base_path = next((candidate for candidate in candidates if candidate.exists()), None)
+    base_path = next((candidate for candidate in candidates if candidate.is_file()), None)
     if base_path is None:
-        st.error("Base OTIF.xlsb não encontrada. Coloque o arquivo na mesma pasta do App ou na pasta data.")
+        st.error(
+            "Base não encontrada. Inclua 'Base OTIF.parquet' na raiz do repositório "
+            "ou na pasta data/."
+        )
         st.stop()
     try:
         with st.spinner("Abrindo base otimizada..."):
