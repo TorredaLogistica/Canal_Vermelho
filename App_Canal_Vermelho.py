@@ -305,27 +305,29 @@ st.markdown('<p class="title">🔴 Indicador Canal Vermelho</p>', unsafe_allow_h
 st.markdown('<p class="subtitle">Acompanhamento mensal de pedidos, tempos operacionais e evolução dos últimos seis meses</p>', unsafe_allow_html=True)
 
 with st.sidebar:
-    st.markdown("### Base de dados")
-    # Leitura automática: não existe seleção manual de arquivo.
+    # GitHub / Streamlit Cloud: usa prioritariamente a base Parquet.
+    app_dir = Path(__file__).resolve().parent
     candidates = [
-        Path("Base OTIF.xlsb"),
-        Path("data/Base OTIF.xlsb"),
-        Path(__file__).resolve().parent / "Base OTIF.xlsb",
-        Path(__file__).resolve().parent / "data" / "Base OTIF.xlsb",
+        app_dir / "Base OTIF.parquet",
+        app_dir / "data" / "Base OTIF.parquet",
+        # Compatibilidade opcional para execução local.
+        app_dir / "Base OTIF.xlsb",
+        app_dir / "data" / "Base OTIF.xlsb",
     ]
-    base_path = next((candidate for candidate in candidates if candidate.exists()), None)
+    base_path = next((candidate for candidate in candidates if candidate.is_file()), None)
     if base_path is None:
-        st.error("Base OTIF.xlsb não encontrada. Coloque o arquivo na mesma pasta do App ou na pasta data.")
+        st.error(
+            "Base OTIF.parquet não encontrada. Coloque o arquivo na raiz do repositório "
+            "ou na pasta data/."
+        )
         st.stop()
     try:
         with st.spinner("Abrindo base otimizada..."):
             df, load_mode = load_base(str(base_path.resolve()))
     except Exception as exc:
-        st.error(f"Não foi possível ler a base: {exc}")
+        st.error(f"Não foi possível ler a base Parquet: {exc}")
         st.stop()
 
-    st.caption(f"Fonte: {base_path.name} • {br_int(len(df))} linhas • {load_mode}")
-    st.divider()
     st.markdown("### Visualização")
     visualization = st.radio(
         "Modo de visualização",
@@ -731,15 +733,10 @@ else:
     )
     fig_evolution_pct.update_layout(
         title="Evolução mensal percentual — Com x Sem Canal Vermelho",
-        height=550, margin=dict(l=60, r=45, t=100, b=125),
+        height=500, margin=dict(l=60, r=45, t=100, b=65),
         paper_bgcolor="white", plot_bgcolor="white",
         font=dict(family="Arial", color="#525866"),
-        legend=dict(
-            orientation="h", x=0.5, y=-0.24,
-            xanchor="center", yanchor="top",
-            bgcolor="rgba(255,255,255,0.95)",
-            font=dict(size=13),
-        ),
+        legend=dict(orientation="h", y=1.10, x=0, yanchor="bottom"),
         xaxis=dict(title="Mês/Ano"),
         yaxis=dict(title="Percentual", tickformat=".0%", range=[0, 1.08], gridcolor=GRID),
         hovermode="x unified",
@@ -765,15 +762,10 @@ else:
     )
     fig_evolution_volume.update_layout(
         title="Evolução mensal em volume — Com x Sem Canal Vermelho",
-        height=550, margin=dict(l=60, r=45, t=100, b=125),
+        height=500, margin=dict(l=60, r=45, t=100, b=65),
         paper_bgcolor="white", plot_bgcolor="white",
         font=dict(family="Arial", color="#525866"),
-        legend=dict(
-            orientation="h", x=0.5, y=-0.24,
-            xanchor="center", yanchor="top",
-            bgcolor="rgba(255,255,255,0.95)",
-            font=dict(size=13),
-        ),
+        legend=dict(orientation="h", y=1.10, x=0, yanchor="bottom"),
         xaxis=dict(title="Mês/Ano"), yaxis=dict(title="Pedidos distintos", gridcolor=GRID),
         hovermode="x unified",
     )
@@ -791,21 +783,10 @@ else:
             marker_color=RED, text=top_cd["% Canal Vermelho"].map(br_pct),
             textposition="outside",
         ))
-        cd_max = float(top_cd["% Canal Vermelho"].max()) if not top_cd.empty else 0
-        cd_axis_max = min(1.0, max(0.15, cd_max * 1.40))
-        fig_rank_cd.update_traces(
-            texttemplate="%{text}",
-            textfont=dict(size=13),
-            cliponaxis=False,
-        )
         fig_rank_cd.update_layout(
             title="Ranking por CD Origem", height=max(440, len(top_cd) * 32),
-            margin=dict(l=40, r=175, t=80, b=50), paper_bgcolor="white", plot_bgcolor="white",
-            xaxis=dict(
-                title="% Canal Vermelho", tickformat=".0%", gridcolor=GRID,
-                range=[0, cd_axis_max],
-            ),
-            yaxis_title=None,
+            margin=dict(l=40, r=90, t=80, b=50), paper_bgcolor="white", plot_bgcolor="white",
+            xaxis=dict(title="% Canal Vermelho", tickformat=".0%", gridcolor=GRID), yaxis_title=None,
         )
         with st.container(border=True):
             st.plotly_chart(fig_rank_cd, use_container_width=True)
@@ -817,21 +798,10 @@ else:
             marker_color=ORANGE, text=top_transp["% Canal Vermelho"].map(br_pct),
             textposition="outside",
         ))
-        transp_max = float(top_transp["% Canal Vermelho"].max()) if not top_transp.empty else 0
-        transp_axis_max = min(1.0, max(0.20, transp_max * 1.32))
-        fig_rank_transp.update_traces(
-            texttemplate="%{text}",
-            textfont=dict(size=13),
-            cliponaxis=False,
-        )
         fig_rank_transp.update_layout(
             title="Ranking por Transportadora", height=max(440, len(top_transp) * 32),
-            margin=dict(l=40, r=190, t=80, b=50), paper_bgcolor="white", plot_bgcolor="white",
-            xaxis=dict(
-                title="% Canal Vermelho", tickformat=".0%", gridcolor=GRID,
-                range=[0, transp_axis_max],
-            ),
-            yaxis_title=None,
+            margin=dict(l=40, r=90, t=80, b=50), paper_bgcolor="white", plot_bgcolor="white",
+            xaxis=dict(title="% Canal Vermelho", tickformat=".0%", gridcolor=GRID), yaxis_title=None,
         )
         with st.container(border=True):
             st.plotly_chart(fig_rank_transp, use_container_width=True)
