@@ -24,7 +24,7 @@ st.markdown("""
 <style>
 .block-container{padding-top:.8rem;padding-bottom:2rem;max-width:1850px}
 [data-testid="stSidebar"]{background:#F7F8FB;border-right:1px solid #E3E7EE}
-.title{font-size:2rem;font-weight:850;color:#172033;margin:0}
+.title{font-size:2rem;font-weight:850;color:#172033;margin:2.4rem 0 .25rem;line-height:1.2}
 .subtitle{color:#667085;margin:.15rem 0 1rem}
 .kpi{background:#FFF;border:1px solid #D9DEE7;border-radius:22px;min-height:128px;padding:15px;
 box-shadow:0 5px 10px rgba(16,24,40,.13);display:flex;flex-direction:column;justify-content:center;text-align:center}
@@ -301,7 +301,7 @@ def style_table(df, title, color):
     )
 
 
-st.markdown('<p class="title">🔴 Indicador Canal Vermelho</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="title">Indicador de Canal Vermelho</h1>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle">Acompanhamento mensal de pedidos, tempos operacionais e evolução dos últimos seis meses</p>', unsafe_allow_html=True)
 
 with st.sidebar:
