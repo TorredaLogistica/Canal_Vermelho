@@ -393,9 +393,12 @@ filtered_all = filter_values(filtered_all, "CD Origem", selected_cds)
 # Mesmo padrão visual e destinatários do App_Faturas.py.
 # ================================================================
 def url_outlook_email(destinatario, assunto, corpo):
+    corpo_com_quebra_final = corpo.rstrip() + "\n\n"
     return (
         "https://outlook.office.com/mail/deeplink/compose"
-        f"?to={quote(destinatario)}&subject={quote(assunto)}&body={quote(corpo)}"
+        f"?to={quote(destinatario, safe='')}"
+        f"&subject={quote(assunto, safe='')}"
+        f"&body={quote(corpo_com_quebra_final, safe='')}"
     )
 
 
@@ -461,8 +464,7 @@ Para consultar informações mais detalhadas e explorar todas as visões do Indi
 
 {LINK_INDICADOR_CANAL_VERMELHO}
 
-Atenciosamente,
-André Dikman"""
+"""
 
 
 if visualization == "📧 Enviar por e-mail":
@@ -653,8 +655,7 @@ Para consultar informações mais detalhadas e explorar todas as visões do Indi
 
 {LINK_INDICADOR_CANAL_VERMELHO}
 
-Atenciosamente,
-André Dikman"""
+"""
             assunto_gerente = f"[TESTE] Consolidado Gerencial Canal Vermelho | {referencia_envio}"
 
             st.markdown(
