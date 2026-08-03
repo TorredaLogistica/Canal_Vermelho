@@ -514,7 +514,7 @@ if visualization == "📧 Enviar por e-mail":
             "Brasília": "andre.dikman@claro.com.br",
             "Contagem": "paulo.rocha@claro.com.br",
             "Jaboatão": "daiana.costa@claro.com.br",
-            "Rio de Janeiro": "EDGAR.RIBEIRODASILVA@claro.com.br",
+            "Rio de Janeiro": "edgar.ribeirodasilva@claro.com.br",
             "Campinas": "demis.lamego@claro.com.br",
         }
         EMAILS_GERENTES_TESTE = [
