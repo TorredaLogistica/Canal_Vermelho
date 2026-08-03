@@ -332,7 +332,7 @@ with st.sidebar:
     st.markdown("### Visualização")
     visualization = st.radio(
         "Modo de visualização",
-        ["📊 Visão Diária", "📈 Evolução Mensal"],
+        ["📊 Visão Diária", "📈 Evolução Mensal", "📧 Enviar por e-mail"],
         index=0,
         label_visibility="collapsed",
     )
@@ -377,6 +377,9 @@ with st.sidebar:
 filtered_all = filter_values(df, "Transportadora", selected_transporters)
 filtered_all = filter_values(filtered_all, "Empresa Padrao", selected_companies)
 filtered_all = filter_values(filtered_all, "CD Origem", selected_cds)
+
+if visualization == "📧 Enviar por e-mail":
+    st.sidebar.success("Central de e-mail aberta na área principal.")
 # =====================================================================
 # CENTRAL DE COMUNICACAO PELO OUTLOOK WEB
 # Abre a mensagem pronta no navegador. O envio final permanece manual.
@@ -914,7 +917,7 @@ if visualization == "📊 Visão Diária":
         st.dataframe(current[columns].sort_values("Referencia"), use_container_width=True, hide_index=True)
         csv = current[columns].to_csv(index=False, sep=";", decimal=",", date_format="%d/%m/%Y").encode("utf-8-sig")
         st.download_button("⬇️ Baixar dados filtrados", csv, f"canal_vermelho_{selected_period}.csv", "text/csv")
-else:
+elif visualization == "📈 Evolução Mensal":
     # EVOLUÇÃO MENSAL: janela encerrada no Mês/Ano Referência selecionado.
     evolution_periods = pd.period_range(end=selected_period, periods=accumulated_months, freq="M")
     evolution_base = filtered_all[filtered_all["MesRef"].isin(evolution_periods)].copy()
