@@ -517,7 +517,7 @@ if visualization == "📧 Enviar por e-mail":
             "Rio de Janeiro": "EDGAR.RIBEIRODASILVA@claro.com.br",
             "Campinas": "demis.lamego@claro.com.br",
         }
-        EMAIL_GERENTE_TESTE = "andre.dikman@claro.com.br";"demis.lamego@claro.com.br";"EDGAR.RIBEIRODASILVA@claro.com.br"
+        EMAIL_GERENTE_TESTE = "andre.dikman@claro.com.br","demis.lamego@claro.com.br","EDGAR.RIBEIRODASILVA@claro.com.br"
       
         referencia_envio = period_label(selected_period)
         base_email = filtered_all[filtered_all["MesRef"] == selected_period].copy()
