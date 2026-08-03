@@ -457,7 +457,8 @@ Segue o resultado do Indicador de Canal Vermelho da unidade {unidade_negrito}.
 
 Os resultados consideram os filtros aplicados no indicador.
 
-Para consultar informações mais detalhadas e explorar todas as visões do Indicador de Canal Vermelho, acesse:
+Para consultar informações mais detalhadas e explorar todas as visões do Indicador de Canal Vermelho, acesse o link abaixo:
+
 {LINK_INDICADOR_CANAL_VERMELHO}
 
 Atenciosamente,
@@ -551,6 +552,7 @@ if visualization == "📧 Enviar por e-mail":
                 with st.expander("Visualizar prévia do e-mail", expanded=True):
                     st.markdown(f"**Para:** {destinatario}")
                     st.markdown(f"**Assunto:** {assunto}")
+                    st.markdown(f"**Acesso ao indicador:** [{LINK_INDICADOR_CANAL_VERMELHO}]({LINK_INDICADOR_CANAL_VERMELHO})")
                     st.text_area("Corpo da mensagem", corpo, height=430, disabled=True, key="previa_cv_individual")
                 confirmar_individual = st.checkbox(
                     "Confirmo que revisei o envio individual.", key="conf_cv_individual"
@@ -647,7 +649,8 @@ Segue o consolidado gerencial de teste do Indicador de Canal Vermelho.
 
 Mensagem gerada em modo de teste pelo Indicador de Canal Vermelho.
 
-Para consultar informações mais detalhadas e explorar todas as visões do Indicador de Canal Vermelho, acesse:
+Para consultar informações mais detalhadas e explorar todas as visões do Indicador de Canal Vermelho, acesse o link abaixo:
+
 {LINK_INDICADOR_CANAL_VERMELHO}
 
 Atenciosamente,
@@ -667,6 +670,7 @@ André Dikman"""
             with st.expander("Visualizar consolidado gerencial", expanded=True):
                 st.markdown(f"**Para:** {EMAIL_GERENTE_TESTE}")
                 st.markdown(f"**Assunto:** {assunto_gerente}")
+                st.markdown(f"**Acesso ao indicador:** [{LINK_INDICADOR_CANAL_VERMELHO}]({LINK_INDICADOR_CANAL_VERMELHO})")
                 st.text_area("Corpo consolidado", corpo_gerente, height=650, disabled=True, key="previa_cv_gerente")
             confirmar_gerente = st.checkbox(
                 "Confirmo que revisei o consolidado gerencial.", key="conf_cv_gerente"
