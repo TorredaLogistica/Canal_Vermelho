@@ -424,28 +424,41 @@ def dias_email(valor):
     return "—" if pd.isna(valor) else f"{br_dec(valor, 2)} dias"
 
 
+def titulo_negrito(texto):
+    normal = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    negrito = "𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵"
+    return str(texto).translate(str.maketrans(normal, negrito))
+
+
+LINK_INDICADOR_CANAL_VERMELHO = "https://cuencjwy3ahhnzymzsspuc.streamlit.app/"
+
+
 def corpo_canal_email(cd, referencia, resumo):
+    unidade_negrito = titulo_negrito(str(cd).upper())
     return f"""Olá,
 
-Segue o resultado do Indicador de Canal Vermelho da unidade {cd}.
+Segue o resultado do Indicador de Canal Vermelho da unidade {unidade_negrito}.
 
-Referência: {referencia}
-Unidade: {cd}
+{titulo_negrito('REFERÊNCIA')}: {referencia}
+{titulo_negrito('UNIDADE')}: {unidade_negrito}
 
-RESUMO EXECUTIVO
+{titulo_negrito('RESUMO EXECUTIVO')}
 • Total de pedidos: {br_int(resumo['total'])}
 • Pedidos com Canal Vermelho: {br_int(resumo['vermelho'])}
 • Percentual de Canal Vermelho: {br_pct(resumo['percentual'])}
 • Pedidos sem Canal Vermelho: {br_int(resumo['sem_vermelho'])}
 • Média diária de Canal Vermelho: {br_dec(resumo['media_diaria'], 1)} pedidos
 
-TEMPOS MÉDIOS COM CANAL VERMELHO
+{titulo_negrito('TEMPOS MÉDIOS COM CANAL VERMELHO')}
 • Faturamento: {dias_email(resumo['faturamento'])}
 • Expedição: {dias_email(resumo['expedicao'])}
 • Entrega: {dias_email(resumo['entrega'])}
 • Tempo total: {dias_email(resumo['tempo_total'])}
 
 Os resultados consideram os filtros aplicados no indicador.
+
+Para consultar informações mais detalhadas e explorar todas as visões do Indicador de Canal Vermelho, acesse:
+{LINK_INDICADOR_CANAL_VERMELHO}
 
 Atenciosamente,
 André Dikman"""
@@ -535,11 +548,6 @@ if visualization == "📧 Enviar por e-mail":
                     """,
                     unsafe_allow_html=True,
                 )
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Total de pedidos", br_int(resumo["total"]))
-                c2.metric("Com Canal Vermelho", br_int(resumo["vermelho"]))
-                c3.metric("% Canal Vermelho", br_pct(resumo["percentual"]))
-
                 with st.expander("Visualizar prévia do e-mail", expanded=True):
                     st.markdown(f"**Para:** {destinatario}")
                     st.markdown(f"**Assunto:** {assunto}")
@@ -609,7 +617,7 @@ if visualization == "📧 Enviar por e-mail":
                 base_cd_g = base_email[base_email["CD Origem"].astype(str).eq(cd_gerente)].copy()
                 resumo_g = resumo_canal_email(base_cd_g)
                 blocos.append(
-                    f"""{cd_gerente.upper()}
+                    f"""{titulo_negrito(str(cd_gerente).upper())}
 {'─' * 34}
 • Total de pedidos: {br_int(resumo_g['total'])}
 • Com Canal Vermelho: {br_int(resumo_g['vermelho'])}
@@ -622,10 +630,10 @@ if visualization == "📧 Enviar por e-mail":
 
 Segue o consolidado gerencial de teste do Indicador de Canal Vermelho.
 
-REFERÊNCIA: {referencia_envio}
-UNIDADES DETALHADAS: {len(blocos)}
+{titulo_negrito('REFERÊNCIA')}: {referencia_envio}
+{titulo_negrito('UNIDADES DETALHADAS')}: {len(blocos)}
 
-RESUMO EXECUTIVO
+{titulo_negrito('RESUMO EXECUTIVO')}
 {'═' * 42}
 • Total de pedidos: {br_int(resumo_geral['total'])}
 • Pedidos com Canal Vermelho: {br_int(resumo_geral['vermelho'])}
@@ -633,11 +641,14 @@ RESUMO EXECUTIVO
 • Pedidos sem Canal Vermelho: {br_int(resumo_geral['sem_vermelho'])}
 • Média diária: {br_dec(resumo_geral['media_diaria'], 1)} pedidos
 
-DETALHAMENTO POR UNIDADE
+{titulo_negrito('DETALHAMENTO POR UNIDADE')}
 {'═' * 42}
 {detalhamento}
 
 Mensagem gerada em modo de teste pelo Indicador de Canal Vermelho.
+
+Para consultar informações mais detalhadas e explorar todas as visões do Indicador de Canal Vermelho, acesse:
+{LINK_INDICADOR_CANAL_VERMELHO}
 
 Atenciosamente,
 André Dikman"""
