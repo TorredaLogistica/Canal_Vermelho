@@ -461,155 +461,157 @@ def carregar_destinatarios_cv():
         return {}
 
 
-st.divider()
-st.markdown("## 📧 Comunicação dos resultados pelo Outlook Web")
-st.caption(
-    "Gera uma mensagem executiva com os resultados do mês e abre o Outlook Web "
-    "com destinatário, assunto e conteúdo preenchidos. O clique final em Enviar é manual."
-)
+if visualization == "📧 Enviar por e-mail":
+    st.divider()
+    st.markdown("## 📧 Comunicação dos resultados pelo Outlook Web")
+    st.caption(
+        "Gera uma mensagem executiva com os resultados do mês e abre o Outlook Web "
+        "com destinatário, assunto e conteúdo preenchidos. O clique final em Enviar é manual."
+    )
 
-if "cv_central_autenticada" not in st.session_state:
-    st.session_state["cv_central_autenticada"] = False
+    if "cv_central_autenticada" not in st.session_state:
+        st.session_state["cv_central_autenticada"] = False
 
-if not st.session_state["cv_central_autenticada"]:
-    with st.form("acesso_central_cv", clear_on_submit=True):
-        senha_informada_cv = st.text_input("Senha da Central de Comunicação", type="password")
-        entrar_cv = st.form_submit_button("🔓 Acessar Central", use_container_width=True, type="primary")
-    if entrar_cv:
-        try:
-            senha_central_cv = str(st.secrets.get("SENHA_CENTRAL_ENVIOS", "adm"))
-        except Exception:
-            senha_central_cv = os.getenv("SENHA_CENTRAL_ENVIOS", "adm")
-        if senha_informada_cv == senha_central_cv:
-            st.session_state["cv_central_autenticada"] = True
-            st.rerun()
-        else:
-            st.error("Senha incorreta.")
-else:
-    c_titulo, c_sair = st.columns([6, 1])
-    with c_titulo:
-        st.info("Revise o destinatário e os números antes de abrir a mensagem no Outlook Web.")
-    with c_sair:
-        if st.button("🔒 Sair", key="sair_central_cv", use_container_width=True):
-            st.session_state["cv_central_autenticada"] = False
-            st.rerun()
+    if not st.session_state["cv_central_autenticada"]:
+        with st.form("acesso_central_cv", clear_on_submit=True):
+            senha_informada_cv = st.text_input("Senha da Central de Comunicação", type="password")
+            entrar_cv = st.form_submit_button("🔓 Acessar Central", use_container_width=True, type="primary")
+        if entrar_cv:
+            try:
+                senha_central_cv = str(st.secrets.get("SENHA_CENTRAL_ENVIOS", "adm"))
+            except Exception:
+                senha_central_cv = os.getenv("SENHA_CENTRAL_ENVIOS", "adm")
+            if senha_informada_cv == senha_central_cv:
+                st.session_state["cv_central_autenticada"] = True
+                st.rerun()
+            else:
+                st.error("Senha incorreta.")
+    else:
+        c_titulo, c_sair = st.columns([6, 1])
+        with c_titulo:
+            st.info("Revise o destinatário e os números antes de abrir a mensagem no Outlook Web.")
+        with c_sair:
+            if st.button("🔒 Sair", key="sair_central_cv", use_container_width=True):
+                st.session_state["cv_central_autenticada"] = False
+                st.rerun()
 
-    referencia_email = period_label(selected_period)
-    base_email = filtered_all[filtered_all["MesRef"] == selected_period].copy()
-    cds_email = unique_sorted(base_email, "CD Origem")
-    destinatarios_cv = carregar_destinatarios_cv()
+        referencia_email = period_label(selected_period)
+        base_email = filtered_all[filtered_all["MesRef"] == selected_period].copy()
+        cds_email = unique_sorted(base_email, "CD Origem")
+        destinatarios_cv = carregar_destinatarios_cv()
 
-    aba_cd, aba_consolidado, aba_lote = st.tabs([
-        "📨 Resultado por CD",
-        "👔 Consolidado gerencial",
-        "📚 Todos os CDs",
-    ])
+        aba_cd, aba_consolidado, aba_lote = st.tabs([
+            "📨 Resultado por CD",
+            "👔 Consolidado gerencial",
+            "📚 Todos os CDs",
+        ])
 
-    with aba_cd:
-        if not cds_email:
-            st.warning("Não existem CDs no recorte selecionado.")
-        else:
-            cd_email = st.selectbox("CD Origem", cds_email, key="cv_cd_email")
-            destinatario_padrao = destinatarios_cv.get(str(cd_email), "")
-            destinatario_cd = st.text_input(
-                "E-mail do responsável",
-                value=destinatario_padrao,
-                placeholder="responsavel@empresa.com",
-                key=f"email_cv_{cd_email}",
+        with aba_cd:
+            if not cds_email:
+                st.warning("Não existem CDs no recorte selecionado.")
+            else:
+                cd_email = st.selectbox("CD Origem", cds_email, key="cv_cd_email")
+                destinatario_padrao = destinatarios_cv.get(str(cd_email), "")
+                destinatario_cd = st.text_input(
+                    "E-mail do responsável",
+                    value=destinatario_padrao,
+                    placeholder="responsavel@empresa.com",
+                    key=f"email_cv_{cd_email}",
+                )
+                base_cd = base_email[base_email["CD Origem"] == cd_email].copy()
+                resumo_cd = resumo_email_canal(base_cd)
+                assunto_cd = f"Resultado Canal Vermelho | {cd_email} | {referencia_email}"
+                corpo_cd = corpo_email_canal(f"CD Origem: {cd_email}", referencia_email, resumo_cd)
+
+                k1, k2, k3 = st.columns(3)
+                k1.metric("Pedidos", br_int(resumo_cd["total"]))
+                k2.metric("Canal Vermelho", br_int(resumo_cd["com_cv"]))
+                k3.metric("Percentual", br_pct(resumo_cd["percentual"]))
+                with st.expander("Visualizar mensagem", expanded=True):
+                    st.markdown(f"**Assunto:** {assunto_cd}")
+                    st.text_area("Conteúdo", corpo_cd, height=470, disabled=True, key="previa_cv_cd")
+                revisar_cd = st.checkbox("Confirmo que revisei o resultado e o destinatário.", key="confirma_cv_cd")
+                if revisar_cd and destinatario_cd.strip():
+                    st.link_button(
+                        "🔴 Abrir resultado no Outlook Web",
+                        outlook_compose_url(destinatario_cd, assunto_cd, corpo_cd),
+                        use_container_width=True,
+                        type="primary",
+                    )
+                elif revisar_cd:
+                    st.warning("Informe o e-mail do responsável.")
+
+        with aba_consolidado:
+            resumo_geral_email = resumo_email_canal(base_email)
+            try:
+                email_gerente_padrao = str(st.secrets.get("EMAIL_GERENTE_CANAL_VERMELHO", ""))
+            except Exception:
+                email_gerente_padrao = os.getenv("EMAIL_GERENTE_CANAL_VERMELHO", "")
+            email_gerente = st.text_input(
+                "E-mail do gerente",
+                value=email_gerente_padrao,
+                placeholder="gerente@empresa.com",
+                key="email_gerente_cv",
             )
-            base_cd = base_email[base_email["CD Origem"] == cd_email].copy()
-            resumo_cd = resumo_email_canal(base_cd)
-            assunto_cd = f"Resultado Canal Vermelho | {cd_email} | {referencia_email}"
-            corpo_cd = corpo_email_canal(f"CD Origem: {cd_email}", referencia_email, resumo_cd)
 
-            k1, k2, k3 = st.columns(3)
-            k1.metric("Pedidos", br_int(resumo_cd["total"]))
-            k2.metric("Canal Vermelho", br_int(resumo_cd["com_cv"]))
-            k3.metric("Percentual", br_pct(resumo_cd["percentual"]))
-            with st.expander("Visualizar mensagem", expanded=True):
-                st.markdown(f"**Assunto:** {assunto_cd}")
-                st.text_area("Conteúdo", corpo_cd, height=470, disabled=True, key="previa_cv_cd")
-            revisar_cd = st.checkbox("Confirmo que revisei o resultado e o destinatário.", key="confirma_cv_cd")
-            if revisar_cd and destinatario_cd.strip():
+            ranking_email = ranking_summary(base_email, "CD Origem").head(10)
+            linhas_ranking = "\n".join(
+                f"• {linha['CD Origem']}: {br_int(linha['Com Canal Vermelho'])} pedidos | {br_pct(linha['% Canal Vermelho'])}"
+                for _, linha in ranking_email.iterrows()
+            )
+            assunto_gerente = f"Consolidado Gerencial | Canal Vermelho | {referencia_email}"
+            corpo_gerente = corpo_email_canal("Consolidado dos filtros selecionados", referencia_email, resumo_geral_email)
+            corpo_gerente += f"\n\nRANKING DOS CDs POR % DE CANAL VERMELHO\n{linhas_ranking or 'Sem dados para o ranking.'}"
+
+            g1, g2, g3 = st.columns(3)
+            g1.metric("Pedidos", br_int(resumo_geral_email["total"]))
+            g2.metric("Canal Vermelho", br_int(resumo_geral_email["com_cv"]))
+            g3.metric("Percentual", br_pct(resumo_geral_email["percentual"]))
+            with st.expander("Visualizar consolidado gerencial", expanded=True):
+                st.markdown(f"**Assunto:** {assunto_gerente}")
+                st.text_area("Conteúdo consolidado", corpo_gerente, height=600, disabled=True, key="previa_cv_gerente")
+            revisar_gerente = st.checkbox("Confirmo que revisei o consolidado gerencial.", key="confirma_cv_gerente")
+            if revisar_gerente and email_gerente.strip():
                 st.link_button(
-                    "🔴 Abrir resultado no Outlook Web",
-                    outlook_compose_url(destinatario_cd, assunto_cd, corpo_cd),
+                    "👔 Abrir consolidado no Outlook Web",
+                    outlook_compose_url(email_gerente, assunto_gerente, corpo_gerente),
                     use_container_width=True,
                     type="primary",
                 )
-            elif revisar_cd:
-                st.warning("Informe o e-mail do responsável.")
+            elif revisar_gerente:
+                st.warning("Informe o e-mail do gerente.")
 
-    with aba_consolidado:
-        resumo_geral_email = resumo_email_canal(base_email)
-        try:
-            email_gerente_padrao = str(st.secrets.get("EMAIL_GERENTE_CANAL_VERMELHO", ""))
-        except Exception:
-            email_gerente_padrao = os.getenv("EMAIL_GERENTE_CANAL_VERMELHO", "")
-        email_gerente = st.text_input(
-            "E-mail do gerente",
-            value=email_gerente_padrao,
-            placeholder="gerente@empresa.com",
-            key="email_gerente_cv",
-        )
+        with aba_lote:
+            st.caption("Exibe um botão para cada CD que possui destinatário cadastrado nos Secrets do Streamlit.")
+            cds_configurados = [cd for cd in cds_email if str(cd) in destinatarios_cv]
+            if not cds_configurados:
+                st.warning(
+                    "Nenhum destinatário por CD foi configurado. Cadastre o Secret "
+                    "DESTINATARIOS_CANAL_VERMELHO para liberar os botões."
+                )
+            else:
+                grade_lote = pd.DataFrame([
+                    {"CD Origem": cd, "Destinatário": destinatarios_cv[str(cd)], "Status": "Pronto"}
+                    for cd in cds_configurados
+                ])
+                st.dataframe(grade_lote, use_container_width=True, hide_index=True)
+                confirmar_lote = st.checkbox(
+                    f"Confirmo que revisei os {len(cds_configurados)} destinatários.",
+                    key="confirma_lote_cv",
+                )
+                if confirmar_lote:
+                    for cd_lote in cds_configurados:
+                        base_cd_lote = base_email[base_email["CD Origem"] == cd_lote].copy()
+                        resumo_lote = resumo_email_canal(base_cd_lote)
+                        assunto_lote = f"Resultado Canal Vermelho | {cd_lote} | {referencia_email}"
+                        corpo_lote = corpo_email_canal(f"CD Origem: {cd_lote}", referencia_email, resumo_lote)
+                        st.link_button(
+                            f"✉️ Abrir {cd_lote} | {destinatarios_cv[str(cd_lote)]}",
+                            outlook_compose_url(destinatarios_cv[str(cd_lote)], assunto_lote, corpo_lote),
+                            use_container_width=True,
+                        )
+                st.warning("Cada mensagem deve ser revisada e enviada separadamente no Outlook Web.")
 
-        ranking_email = ranking_summary(base_email, "CD Origem").head(10)
-        linhas_ranking = "\n".join(
-            f"• {linha['CD Origem']}: {br_int(linha['Com Canal Vermelho'])} pedidos | {br_pct(linha['% Canal Vermelho'])}"
-            for _, linha in ranking_email.iterrows()
-        )
-        assunto_gerente = f"Consolidado Gerencial | Canal Vermelho | {referencia_email}"
-        corpo_gerente = corpo_email_canal("Consolidado dos filtros selecionados", referencia_email, resumo_geral_email)
-        corpo_gerente += f"\n\nRANKING DOS CDs POR % DE CANAL VERMELHO\n{linhas_ranking or 'Sem dados para o ranking.'}"
-
-        g1, g2, g3 = st.columns(3)
-        g1.metric("Pedidos", br_int(resumo_geral_email["total"]))
-        g2.metric("Canal Vermelho", br_int(resumo_geral_email["com_cv"]))
-        g3.metric("Percentual", br_pct(resumo_geral_email["percentual"]))
-        with st.expander("Visualizar consolidado gerencial", expanded=True):
-            st.markdown(f"**Assunto:** {assunto_gerente}")
-            st.text_area("Conteúdo consolidado", corpo_gerente, height=600, disabled=True, key="previa_cv_gerente")
-        revisar_gerente = st.checkbox("Confirmo que revisei o consolidado gerencial.", key="confirma_cv_gerente")
-        if revisar_gerente and email_gerente.strip():
-            st.link_button(
-                "👔 Abrir consolidado no Outlook Web",
-                outlook_compose_url(email_gerente, assunto_gerente, corpo_gerente),
-                use_container_width=True,
-                type="primary",
-            )
-        elif revisar_gerente:
-            st.warning("Informe o e-mail do gerente.")
-
-    with aba_lote:
-        st.caption("Exibe um botão para cada CD que possui destinatário cadastrado nos Secrets do Streamlit.")
-        cds_configurados = [cd for cd in cds_email if str(cd) in destinatarios_cv]
-        if not cds_configurados:
-            st.warning(
-                "Nenhum destinatário por CD foi configurado. Cadastre o Secret "
-                "DESTINATARIOS_CANAL_VERMELHO para liberar os botões."
-            )
-        else:
-            grade_lote = pd.DataFrame([
-                {"CD Origem": cd, "Destinatário": destinatarios_cv[str(cd)], "Status": "Pronto"}
-                for cd in cds_configurados
-            ])
-            st.dataframe(grade_lote, use_container_width=True, hide_index=True)
-            confirmar_lote = st.checkbox(
-                f"Confirmo que revisei os {len(cds_configurados)} destinatários.",
-                key="confirma_lote_cv",
-            )
-            if confirmar_lote:
-                for cd_lote in cds_configurados:
-                    base_cd_lote = base_email[base_email["CD Origem"] == cd_lote].copy()
-                    resumo_lote = resumo_email_canal(base_cd_lote)
-                    assunto_lote = f"Resultado Canal Vermelho | {cd_lote} | {referencia_email}"
-                    corpo_lote = corpo_email_canal(f"CD Origem: {cd_lote}", referencia_email, resumo_lote)
-                    st.link_button(
-                        f"✉️ Abrir {cd_lote} | {destinatarios_cv[str(cd_lote)]}",
-                        outlook_compose_url(destinatarios_cv[str(cd_lote)], assunto_lote, corpo_lote),
-                        use_container_width=True,
-                    )
-            st.warning("Cada mensagem deve ser revisada e enviada separadamente no Outlook Web.")
 
 if visualization == "📊 Visão Diária":
     current = filtered_all[filtered_all["MesRef"] == selected_period].copy()
