@@ -517,7 +517,13 @@ if visualization == "📧 Enviar por e-mail":
             "Rio de Janeiro": "EDGAR.RIBEIRODASILVA@claro.com.br",
             "Campinas": "demis.lamego@claro.com.br",
         }
-        EMAIL_GERENTE_TESTE = "andre.dikman@claro.com.br"
+        EMAILS_GERENTES_TESTE = [
+            "andre.dikman@claro.com.br",
+            "edgar.ribeirodasilva@claro.com.br",
+            "demis.lamego@claro.com.br",
+        ]
+        DESTINATARIOS_GERENTES = ";".join(EMAILS_GERENTES_TESTE)
+        EXIBICAO_GERENTES = "<br>".join(EMAILS_GERENTES_TESTE)
       
         referencia_envio = period_label(selected_period)
         base_email = filtered_all[filtered_all["MesRef"] == selected_period].copy()
@@ -661,14 +667,14 @@ Para consultar informações mais detalhadas e explorar todas as visões do Indi
                 f"""
                 <div class="email-summary-grid">
                     <div class="email-summary-card"><small>Tipo</small><strong>Consolidado</strong></div>
-                    <div class="email-summary-card"><small>Gerente de teste</small><strong>{EMAIL_GERENTE_TESTE}</strong></div>
+                    <div class="email-summary-card"><small>Gerente de teste</small><strong>{EXIBICAO_GERENTES}</strong></div>
                     <div class="email-summary-card"><small>Unidades</small><strong>{len(blocos)}</strong></div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
             with st.expander("Visualizar consolidado gerencial", expanded=True):
-                st.markdown(f"**Para:** {EMAIL_GERENTE_TESTE}")
+                st.markdown("**Para:** " + "; ".join(EMAILS_GERENTES_TESTE))
                 st.markdown(f"**Assunto:** {assunto_gerente}")
                 st.text_area("Corpo consolidado", corpo_gerente, height=650, disabled=True, key="previa_cv_gerente")
             confirmar_gerente = st.checkbox(
@@ -677,7 +683,7 @@ Para consultar informações mais detalhadas e explorar todas as visões do Indi
             if confirmar_gerente:
                 st.link_button(
                     "👔 Abrir consolidado no Outlook Web",
-                    url_outlook_email(EMAIL_GERENTE_TESTE, assunto_gerente, corpo_gerente),
+                    url_outlook_email(DESTINATARIOS_GERENTES, assunto_gerente, corpo_gerente),
                     use_container_width=True,
                     type="primary",
                 )
