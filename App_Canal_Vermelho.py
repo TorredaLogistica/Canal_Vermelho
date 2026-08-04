@@ -514,7 +514,7 @@ if visualization == "📧 Enviar por e-mail":
             "Brasília": "andre.dikman@claro.com.br",
             "Contagem": "paulo.rocha@claro.com.br",
             "Jaboatão": "daiana.costa@claro.com.br",
-            "Rio de Janeiro": "EDGAR.RIBEIRODASILVA@claro.com.br",
+            "Rio de Janeiro": "edgar.ribeirodasilva@claro.com.br",
             "Campinas": "demis.lamego@claro.com.br",
         }
         EMAILS_GERENTES_TESTE = [
@@ -1095,104 +1095,6 @@ elif visualization == "📈 Evolução Mensal":
     )
     with st.container(border=True):
         st.plotly_chart(fig_evolution_volume, use_container_width=True)
-
-    st.markdown('<div class="chart-section-gap"></div>', unsafe_allow_html=True)
-
-    # Grafico 3: evolucao mensal do percentual de Canal Vermelho por CD Origem.
-    cd_month_rows = []
-    for period in evolution_periods:
-        month_data = evolution_base[evolution_base["MesRef"] == period]
-        for cd_origem, cd_group in month_data.groupby("CD Origem", dropna=False):
-            total_cd = count_orders(cd_group)
-            red_cd = count_orders(cd_group[cd_group["CV"] == "Sim"])
-            cd_month_rows.append({
-                "Mês/Ano": period_label(period),
-                "Período": period,
-                "CD Origem": "Não informado" if pd.isna(cd_origem) else str(cd_origem),
-                "% Canal Vermelho": red_cd / total_cd if total_cd else 0,
-                "Total Pedidos": total_cd,
-                "Com Canal Vermelho": red_cd,
-            })
-
-    evolution_cd = pd.DataFrame(cd_month_rows)
-    if evolution_cd.empty:
-        st.info("Não existem dados por CD Origem para o período e filtros selecionados.")
-    else:
-        cds_ordenados = (
-            evolution_cd.groupby("CD Origem")["Com Canal Vermelho"]
-            .sum()
-            .sort_values(ascending=False)
-            .index.tolist()
-        )
-        paleta_cd = [
-            "#E00000", "#168CF4", "#00AE3D", "#F06A35", "#1827A8",
-            "#7C3AED", "#0891B2", "#D97706", "#DB2777", "#4B5563",
-            "#65A30D", "#9333EA", "#0284C7", "#C2410C", "#0F766E",
-        ]
-        fig_evolution_cd = go.Figure()
-        for indice, cd_origem in enumerate(cds_ordenados):
-            serie_cd = evolution_cd[evolution_cd["CD Origem"] == cd_origem].copy()
-            serie_cd = (
-                serie_cd.set_index("Período")
-                .reindex(evolution_periods)
-                .reset_index()
-            )
-            serie_cd["Mês/Ano"] = [period_label(period) for period in evolution_periods]
-            serie_cd["CD Origem"] = cd_origem
-            serie_cd["% Canal Vermelho"] = serie_cd["% Canal Vermelho"].fillna(0)
-            serie_cd["Total Pedidos"] = serie_cd["Total Pedidos"].fillna(0)
-            serie_cd["Com Canal Vermelho"] = serie_cd["Com Canal Vermelho"].fillna(0)
-            fig_evolution_cd.add_scatter(
-                x=serie_cd["Mês/Ano"],
-                y=serie_cd["% Canal Vermelho"],
-                name=cd_origem,
-                mode="lines+markers",
-                line=dict(color=paleta_cd[indice % len(paleta_cd)], width=3),
-                marker=dict(size=9),
-                customdata=np.column_stack((
-                    serie_cd["Total Pedidos"],
-                    serie_cd["Com Canal Vermelho"],
-                )),
-                hovertemplate=(
-                    "<b>%{fullData.name}</b><br>"
-                    "Mês/Ano: %{x}<br>"
-                    "% Canal Vermelho: %{y:.2%}<br>"
-                    "Com Canal Vermelho: %{customdata[1]:,.0f}<br>"
-                    "Total de pedidos: %{customdata[0]:,.0f}<extra></extra>"
-                ),
-            )
-
-        maior_pct_cd = float(evolution_cd["% Canal Vermelho"].max())
-        limite_pct_cd = min(1.0, max(0.10, maior_pct_cd * 1.20))
-        fig_evolution_cd.update_layout(
-            title="Evolução mensal do % de Canal Vermelho por CD Origem",
-            height=max(570, 440 + len(cds_ordenados) * 10),
-            margin=dict(l=60, r=45, t=100, b=150),
-            paper_bgcolor="white",
-            plot_bgcolor="white",
-            font=dict(family="Arial", color="#525866"),
-            legend=dict(
-                title="CD Origem",
-                orientation="h",
-                x=0.5,
-                y=-0.28,
-                xanchor="center",
-                yanchor="top",
-                bgcolor="rgba(255,255,255,0.95)",
-                font=dict(size=12),
-            ),
-            xaxis=dict(title="Mês/Ano", categoryorder="array", categoryarray=[period_label(p) for p in evolution_periods]),
-            yaxis=dict(
-                title="% Canal Vermelho",
-                tickformat=".1%",
-                range=[0, limite_pct_cd],
-                gridcolor=GRID,
-                rangemode="tozero",
-            ),
-            hovermode="x unified",
-        )
-        with st.container(border=True):
-            st.plotly_chart(fig_evolution_cd, use_container_width=True)
 
     st.markdown('<div class="chart-section-gap-lg"></div>', unsafe_allow_html=True)
     st.markdown("### Ranking do maior para o menor % de Canal Vermelho")
