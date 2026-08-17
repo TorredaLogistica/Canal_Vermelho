@@ -1,6 +1,9 @@
 import io
 import os
 import re
+import hmac
+import hashlib
+import time
 import unicodedata
 from urllib.parse import quote
 from datetime import date
@@ -12,6 +15,58 @@ import plotly.graph_objects as go
 import streamlit as st
 
 st.set_page_config(page_title="Canal Vermelho | OTIF", page_icon="🔴", layout="wide")
+
+# ================================================================
+# TESTE PROVISORIO DE ACESSO PELA TORRE DE CONTROLE
+# IMPORTANTE: a chave tambem existe no HTML estatico do portal.
+# Esta camada bloqueia acessos casuais, mas nao substitui Entra ID
+# ou um backend seguro para autenticacao definitiva.
+# ================================================================
+PORTAL_URL = "https://torredalogistica.github.io/portal-torre-logistica/"
+PORTAL_APP_ID = "canal_vermelho"
+PORTAL_TOKEN_TTL = 120
+PORTAL_SHARED_KEY = "b9342075f69fbf07834993550e178cb29eec8346a37259c03c8444e7df541e01"
+
+def bloquear_acesso_portal(motivo="Este indicador deve ser acessado exclusivamente pela Torre de Controle."):
+    st.error(f"🔒 Acesso não autorizado\n\n{motivo}")
+    st.info("Acesse o portal, realize sua autenticação e selecione novamente o Indicador de Canal Vermelho.")
+    st.link_button("Voltar para a Torre de Controle", PORTAL_URL, use_container_width=True)
+    st.stop()
+
+def validar_acesso_portal():
+    if st.session_state.get("acesso_torre_canal_vermelho") is True:
+        return
+
+    ts_texto = str(st.query_params.get("portal_ts", "")).strip()
+    nonce = str(st.query_params.get("portal_nonce", "")).strip()
+    assinatura = str(st.query_params.get("portal_sig", "")).strip().lower()
+
+    if not ts_texto or not nonce or not assinatura:
+        bloquear_acesso_portal()
+
+    try:
+        ts = int(ts_texto)
+    except ValueError:
+        bloquear_acesso_portal("A autorização recebida é inválida.")
+
+    agora = int(time.time())
+    if abs(agora - ts) > PORTAL_TOKEN_TTL:
+        bloquear_acesso_portal("A autorização de acesso expirou. Abra novamente o indicador pela Torre de Controle.")
+
+    mensagem = f"{PORTAL_APP_ID}|{ts_texto}|{nonce}"
+    esperada = hmac.new(
+        PORTAL_SHARED_KEY.encode("utf-8"),
+        mensagem.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+    if not hmac.compare_digest(assinatura, esperada):
+        bloquear_acesso_portal("A autorização recebida não foi emitida corretamente pela Torre de Controle.")
+
+    st.session_state["acesso_torre_canal_vermelho"] = True
+    st.query_params.clear()
+
+validar_acesso_portal()
 
 RED = "#E00000"
 GREEN = "#00AE3D"
@@ -433,7 +488,7 @@ def titulo_negrito(texto):
     return str(texto).translate(str.maketrans(normal, negrito))
 
 
-LINK_INDICADOR_CANAL_VERMELHO = "https://cuencjwy3ahhnzymzsspuc.streamlit.app/"
+LINK_INDICADOR_CANAL_VERMELHO = "https://torredalogistica.github.io/portal-torre-logistica/"
 
 
 def corpo_canal_email(cd, referencia, resumo):
