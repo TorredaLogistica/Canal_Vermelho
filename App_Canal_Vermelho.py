@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from streamlit_cookies_controller import CookieController, RemoveEmptyElementContainer
 
 st.set_page_config(page_title="Canal Vermelho | OTIF", page_icon="🔴", layout="wide")
 
@@ -24,8 +25,43 @@ st.set_page_config(page_title="Canal Vermelho | OTIF", page_icon="🔴", layout=
 # ================================================================
 PORTAL_URL = "https://torredalogistica.github.io/portal-torre-logistica/"
 PORTAL_APP_ID = "canal_vermelho"
-PORTAL_TOKEN_TTL = 60
+PORTAL_TOKEN_TTL = 30
 PORTAL_SHARED_KEY = "b9342075f69fbf07834993550e178cb29eec8346a37259c03c8444e7df541e01"
+
+COOKIE_NAME = "torre_canal_vermelho"
+COOKIE_MAX_AGE = 8 * 60 * 60
+COOKIE_SIGNATURE_CONTEXT = "COOKIE_TORRE_CANAL_VERMELHO"
+
+cookie_controller = CookieController()
+RemoveEmptyElementContainer()
+
+
+def criar_cookie_assinado(expira_em, identificador):
+    conteudo = f"{PORTAL_APP_ID}|{expira_em}|{identificador}"
+    assinatura = hmac.new(
+        PORTAL_SHARED_KEY.encode("utf-8"),
+        f"{COOKIE_SIGNATURE_CONTEXT}|{conteudo}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return f"{expira_em}.{identificador}.{assinatura}"
+
+
+def cookie_assinado_valido(valor_cookie):
+    if not valor_cookie:
+        return False
+
+    try:
+        expira_texto, identificador, assinatura = str(valor_cookie).split(".", 2)
+        expira_em = int(expira_texto)
+    except (TypeError, ValueError):
+        return False
+
+    if expira_em < int(time.time()):
+        return False
+
+    esperado = criar_cookie_assinado(expira_em, identificador)
+    return hmac.compare_digest(str(valor_cookie), esperado)
+
 
 def bloquear_acesso_portal(motivo="Este indicador deve ser acessado exclusivamente pela Torre de Controle."):
     st.error(f"🔒 Acesso não autorizado\n\n{motivo}")
@@ -33,13 +69,14 @@ def bloquear_acesso_portal(motivo="Este indicador deve ser acessado exclusivamen
     st.link_button("Voltar para a Torre de Controle", PORTAL_URL, use_container_width=True)
     st.stop()
 
-def validar_acesso_portal():
+
+def validar_token_url():
     ts_texto = str(st.query_params.get("portal_ts", "")).strip()
     nonce = str(st.query_params.get("portal_nonce", "")).strip()
     assinatura = str(st.query_params.get("portal_sig", "")).strip().lower()
 
     if not ts_texto or not nonce or not assinatura:
-        bloquear_acesso_portal()
+        return False
 
     try:
         ts = int(ts_texto)
@@ -48,7 +85,9 @@ def validar_acesso_portal():
 
     agora = int(time.time())
     if abs(agora - ts) > PORTAL_TOKEN_TTL:
-        bloquear_acesso_portal("A autorização de acesso expirou. Abra novamente o indicador pela Torre de Controle.")
+        bloquear_acesso_portal(
+            "A autorização de acesso expirou. Abra novamente o indicador pela Torre de Controle."
+        )
 
     mensagem = f"{PORTAL_APP_ID}|{ts_texto}|{nonce}"
     esperada = hmac.new(
@@ -58,11 +97,48 @@ def validar_acesso_portal():
     ).hexdigest()
 
     if not hmac.compare_digest(assinatura, esperada):
-        bloquear_acesso_portal("A autorização recebida não foi emitida corretamente pela Torre de Controle.")
+        bloquear_acesso_portal(
+            "A autorização recebida não foi emitida corretamente pela Torre de Controle."
+        )
 
-    # Mantem os parametros na URL para preservar a autorizacao em
-    # reinicializacoes, atualizacoes e reconexoes do Streamlit.
+    return True
+
+
+def validar_acesso_portal():
+    # Na mesma sessão do Streamlit, mantém o acesso sem nova validação.
+    if st.session_state.get("acesso_torre_canal_vermelho") is True:
+        return
+
+    # Em uma atualização completa da página, valida o cookie assinado.
+    valor_cookie = cookie_controller.get(COOKIE_NAME)
+    if cookie_assinado_valido(valor_cookie):
+        st.session_state["acesso_torre_canal_vermelho"] = True
+        return
+
+    # No primeiro acesso, exige o token temporário gerado pela Torre.
+    if not validar_token_url():
+        bloquear_acesso_portal(
+            "Este navegador não possui uma sessão válida da Torre de Controle."
+        )
+
+    agora = int(time.time())
+    expira_em = agora + COOKIE_MAX_AGE
+    identificador = str(st.query_params.get("portal_nonce", "")).strip()
+    valor_cookie = criar_cookie_assinado(expira_em, identificador)
+
+    cookie_controller.set(
+        COOKIE_NAME,
+        valor_cookie,
+        max_age=COOKIE_MAX_AGE,
+        secure=True,
+        same_site="strict",
+    )
+
     st.session_state["acesso_torre_canal_vermelho"] = True
+
+    # Remove o token temporário da barra de endereço após a validação.
+    st.query_params.clear()
+
 
 validar_acesso_portal()
 
