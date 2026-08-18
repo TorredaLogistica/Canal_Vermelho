@@ -60,9 +60,8 @@ def validar_acesso_portal():
     if not hmac.compare_digest(assinatura, esperada):
         bloquear_acesso_portal("A autorização recebida não foi emitida corretamente pela Torre de Controle.")
 
-    # Mantem os parametros na URL interna do iframe.
-    # Isso evita perder a autorizacao quando o Streamlit desperta,
-    # reconecta ou cria uma nova sessao durante o carregamento.
+    # Mantem os parametros na URL para preservar a autorizacao em
+    # reinicializacoes, atualizacoes e reconexoes do Streamlit.
     st.session_state["acesso_torre_canal_vermelho"] = True
 
 validar_acesso_portal()
