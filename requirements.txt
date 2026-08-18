@@ -6,3 +6,4 @@ plotly>=5.20,<7.0
 pyxlsb>=1.0.10,<2.0
 pyarrow>=16.0,<24.0
 openpyxl>=3.1,<4.0
+streamlit-cookies-controller==0.0.4
