@@ -34,9 +34,6 @@ def bloquear_acesso_portal(motivo="Este indicador deve ser acessado exclusivamen
     st.stop()
 
 def validar_acesso_portal():
-    if st.session_state.get("acesso_torre_canal_vermelho") is True:
-        return
-
     ts_texto = str(st.query_params.get("portal_ts", "")).strip()
     nonce = str(st.query_params.get("portal_nonce", "")).strip()
     assinatura = str(st.query_params.get("portal_sig", "")).strip().lower()
@@ -63,8 +60,10 @@ def validar_acesso_portal():
     if not hmac.compare_digest(assinatura, esperada):
         bloquear_acesso_portal("A autorização recebida não foi emitida corretamente pela Torre de Controle.")
 
+    # Mantem os parametros na URL interna do iframe.
+    # Isso evita perder a autorizacao quando o Streamlit desperta,
+    # reconecta ou cria uma nova sessao durante o carregamento.
     st.session_state["acesso_torre_canal_vermelho"] = True
-    st.query_params.clear()
 
 validar_acesso_portal()
 
