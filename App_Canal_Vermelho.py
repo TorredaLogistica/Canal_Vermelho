@@ -25,7 +25,7 @@ st.set_page_config(page_title="Canal Vermelho | OTIF", page_icon="🔴", layout=
 # ================================================================
 PORTAL_URL = "https://torredalogistica.github.io/portal-torre-logistica/"
 PORTAL_APP_ID = "canal_vermelho"
-PORTAL_TOKEN_TTL = 30
+PORTAL_TOKEN_TTL = 90
 PORTAL_SHARED_KEY = "b9342075f69fbf07834993550e178cb29eec8346a37259c03c8444e7df541e01"
 
 COOKIE_NAME = "torre_canal_vermelho"
