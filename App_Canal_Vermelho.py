@@ -104,25 +104,34 @@ def validar_token_url():
     return True
 
 
+def ler_cookie_portal():
+    """Lê o cookie sem falhar enquanto o componente ainda está inicializando."""
+    try:
+        # Preferência para a API nativa do Streamlit na requisição atual.
+        valor = st.context.cookies.get(COOKIE_NAME)
+        if valor:
+            return valor
+    except (AttributeError, KeyError, TypeError):
+        pass
+
+    try:
+        # Compatibilidade com versões anteriores do Streamlit.
+        return cookie_controller.get(COOKIE_NAME)
+    except (AttributeError, KeyError, TypeError):
+        # O componente pode retornar None internamente durante a inicialização.
+        return None
+
+
 def validar_acesso_portal():
     # Na mesma sessão do Streamlit, mantém o acesso sem nova validação.
     if st.session_state.get("acesso_torre_canal_vermelho") is True:
         return
 
-    # O componente de cookies é carregado no navegador de forma assíncrona.
-    # Em uma atualização completa, concede até 3 reruns curtos para o cookie
-    # aparecer antes de concluir que a sessão persistente não existe.
-    valor_cookie = cookie_controller.get(COOKIE_NAME)
+    # Em uma atualização completa da página, valida o cookie assinado de 12 horas.
+    valor_cookie = ler_cookie_portal()
     if cookie_assinado_valido(valor_cookie):
         st.session_state["acesso_torre_canal_vermelho"] = True
         st.session_state.pop("tentativas_leitura_cookie_torre", None)
-
-        # Remove os parâmetros somente depois de confirmar o cookie no navegador.
-        if any(
-            chave in st.query_params
-            for chave in ("portal_ts", "portal_nonce", "portal_sig")
-        ):
-            st.query_params.clear()
         return
 
     tem_token_url = all(
@@ -130,19 +139,19 @@ def validar_acesso_portal():
         for chave in ("portal_ts", "portal_nonce", "portal_sig")
     )
 
-    # Em refresh/F5, dá tempo para o componente carregar o cookie existente.
+    # Sem autorização na URL, aguarda brevemente a leitura assíncrona do cookie.
     if not tem_token_url:
         tentativas = int(st.session_state.get("tentativas_leitura_cookie_torre", 0))
         if tentativas < 3:
             st.session_state["tentativas_leitura_cookie_torre"] = tentativas + 1
-            time.sleep(0.45)
+            time.sleep(0.40)
             st.rerun()
 
         bloquear_acesso_portal(
             "Este navegador não possui uma sessão válida da Torre de Controle."
         )
 
-    # No primeiro acesso, exige o token temporário gerado pela Torre.
+    # No primeiro acesso, exige o token temporário emitido pela Torre.
     if not validar_token_url():
         bloquear_acesso_portal(
             "Este navegador não possui uma sessão válida da Torre de Controle."
@@ -161,10 +170,11 @@ def validar_acesso_portal():
         same_site="strict",
     )
 
-    # Não limpa a URL imediatamente. Primeiro permite a gravação do cookie;
-    # no rerun seguinte ele é validado e os parâmetros são removidos.
-    time.sleep(0.75)
-    st.rerun()
+    # A sessão atual é liberada imediatamente; o cookie mantém os próximos
+    # carregamentos deste navegador por até 12 horas.
+    st.session_state["acesso_torre_canal_vermelho"] = True
+    st.session_state.pop("tentativas_leitura_cookie_torre", None)
+    st.query_params.clear()
 
 
 validar_acesso_portal()
