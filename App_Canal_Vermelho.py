@@ -29,7 +29,7 @@ PORTAL_TOKEN_TTL = 90
 PORTAL_SHARED_KEY = "b9342075f69fbf07834993550e178cb29eec8346a37259c03c8444e7df541e01"
 
 COOKIE_NAME = "torre_canal_vermelho"
-COOKIE_MAX_AGE = 8 * 60 * 60
+COOKIE_MAX_AGE = 12 * 60 * 60
 COOKIE_SIGNATURE_CONTEXT = "COOKIE_TORRE_CANAL_VERMELHO"
 
 cookie_controller = CookieController()
@@ -109,11 +109,38 @@ def validar_acesso_portal():
     if st.session_state.get("acesso_torre_canal_vermelho") is True:
         return
 
-    # Em uma atualização completa da página, valida o cookie assinado.
+    # O componente de cookies é carregado no navegador de forma assíncrona.
+    # Em uma atualização completa, concede até 3 reruns curtos para o cookie
+    # aparecer antes de concluir que a sessão persistente não existe.
     valor_cookie = cookie_controller.get(COOKIE_NAME)
     if cookie_assinado_valido(valor_cookie):
         st.session_state["acesso_torre_canal_vermelho"] = True
+        st.session_state.pop("tentativas_leitura_cookie_torre", None)
+
+        # Remove os parâmetros somente depois de confirmar o cookie no navegador.
+        if any(
+            chave in st.query_params
+            for chave in ("portal_ts", "portal_nonce", "portal_sig")
+        ):
+            st.query_params.clear()
         return
+
+    tem_token_url = all(
+        str(st.query_params.get(chave, "")).strip()
+        for chave in ("portal_ts", "portal_nonce", "portal_sig")
+    )
+
+    # Em refresh/F5, dá tempo para o componente carregar o cookie existente.
+    if not tem_token_url:
+        tentativas = int(st.session_state.get("tentativas_leitura_cookie_torre", 0))
+        if tentativas < 3:
+            st.session_state["tentativas_leitura_cookie_torre"] = tentativas + 1
+            time.sleep(0.45)
+            st.rerun()
+
+        bloquear_acesso_portal(
+            "Este navegador não possui uma sessão válida da Torre de Controle."
+        )
 
     # No primeiro acesso, exige o token temporário gerado pela Torre.
     if not validar_token_url():
@@ -124,20 +151,20 @@ def validar_acesso_portal():
     agora = int(time.time())
     expira_em = agora + COOKIE_MAX_AGE
     identificador = str(st.query_params.get("portal_nonce", "")).strip()
-    valor_cookie = criar_cookie_assinado(expira_em, identificador)
+    novo_cookie = criar_cookie_assinado(expira_em, identificador)
 
     cookie_controller.set(
         COOKIE_NAME,
-        valor_cookie,
+        novo_cookie,
         max_age=COOKIE_MAX_AGE,
         secure=True,
         same_site="strict",
     )
 
-    st.session_state["acesso_torre_canal_vermelho"] = True
-
-    # Remove o token temporário da barra de endereço após a validação.
-    st.query_params.clear()
+    # Não limpa a URL imediatamente. Primeiro permite a gravação do cookie;
+    # no rerun seguinte ele é validado e os parâmetros são removidos.
+    time.sleep(0.75)
+    st.rerun()
 
 
 validar_acesso_portal()
